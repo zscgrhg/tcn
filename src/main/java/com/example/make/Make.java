@@ -1,10 +1,8 @@
 package com.example.make;
 
 
-import com.example.exec.Commands;
-
-import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.file.*;
 import java.util.Objects;
@@ -92,6 +90,20 @@ public class Make {
         Files.copy(server, setserver, StandardCopyOption.REPLACE_EXISTING);
     }
 
+    public void setRedisson(File tomcat_home) throws Exception {
+
+        copyToTomcat(tomcat_home,"lib","redisson-all-2.8.1.jar");
+        copyToTomcat(tomcat_home,"lib","redisson-tomcat-7-2.8.1.jar");
+        copyToTomcat(tomcat_home,"conf","context.xml");
+        copyToTomcat(tomcat_home,".","redisson.conf");
+    }
+
+    public void copyToTomcat(File tomcat_home, String subDir, String jarName) throws Exception {
+        Path redissonJar = tomcat_home.toPath().resolve(subDir).resolve(jarName);
+        InputStream redisson = new FileInputStream(sourceDir.toPath().resolve(jarName).toFile());
+        Files.copy(redisson, redissonJar, StandardCopyOption.REPLACE_EXISTING);
+    }
+
     public void pkg() throws Exception {
         prepare();
         File apr_base = Utils.getDir(sourceDir, APR_MATCHER);
@@ -108,6 +120,7 @@ public class Make {
         tcnative.mkdir();
         installTCNative(tcnative_base, tcnative);
         setenv(tomcat_home);
+        setRedisson(tomcat_home);
         tar(sourceDir, "apr-"+tomcat_home.getName() + ".tar.gz", tomcat_home);
     }
 
