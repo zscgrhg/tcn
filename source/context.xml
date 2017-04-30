@@ -26,7 +26,7 @@
     <Manager pathname="" />
     -->
     <Manager className="org.redisson.tomcat.RedissonSessionManager"
-	         configPath="${catalina.base}/redisson.conf" />
+	         configPath="${catalina.base}/redisson.json" />
     <!-- Uncomment this to enable Comet connection tacking (provides events
          on session expiration as well as webapp lifecycle) -->
     <!--

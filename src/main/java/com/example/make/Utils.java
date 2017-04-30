@@ -62,15 +62,4 @@ public class Utils {
         Map<String, String> lscpu = command.excute("lscpu");
         return lscpu;
     }
-
-    public static void main(String[] args) {
-        File f=new File("/home/think/IdeaProjects/tcn/source/target/apr-util-1.5.4/xml/expat/.libs");
-        System.out.println(f.isDirectory());
-        for (File file : f.listFiles()) {
-            System.out.println(file);
-            //boolean delete = file.delete();
-            //System.out.println(delete);
-        }
-
-    }
 }

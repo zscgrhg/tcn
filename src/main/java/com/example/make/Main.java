@@ -49,6 +49,7 @@ public class Main {
             throw new Exception("dir not exist : ./source");
         }
         deleteDir(outputDir);
+        Thread.sleep(1000L);
         File apr = Utils.getFile(sourceDir, APR_MATCHER);
         File apr_util = Utils.getFile(sourceDir, APR_UTIL_MATCHER);
         File tomcat = Utils.getFile(sourceDir, TOMCAT_MATCHER);
@@ -96,12 +97,12 @@ public class Main {
 
     public void setenv(File tomcat_home) throws Exception {
         Path setenv = tomcat_home.toPath().resolve("bin/setenv.sh");
-        InputStream env = Main.class.getClassLoader().getResourceAsStream("setenv.sh");
-        Files.copy(env, setenv, StandardCopyOption.REPLACE_EXISTING);
+
+        Files.copy(sourceDir.toPath().resolve("setenv.sh"), setenv, StandardCopyOption.REPLACE_EXISTING);
 
         Path setserver = tomcat_home.toPath().resolve("conf/server.xml");
-        InputStream server = Main.class.getClassLoader().getResourceAsStream("server.xml");
-        Files.copy(server, setserver, StandardCopyOption.REPLACE_EXISTING);
+
+        Files.copy(sourceDir.toPath().resolve("server.xml"), setserver, StandardCopyOption.REPLACE_EXISTING);
     }
 
     public void setRedisson(File tomcat_home) throws Exception {
@@ -109,7 +110,7 @@ public class Main {
         copy(tomcat_home,"lib","redisson-all-2.8.1.jar");
         copy(tomcat_home,"lib","redisson-tomcat-7-2.8.1.jar");
         copy(tomcat_home,"conf","context.xml");
-        copy(tomcat_home,".","redisson.conf");
+        copy(tomcat_home,".","redisson.json");
     }
 
     public void copy(File tomcat_home, String subDir, String src) throws Exception {
