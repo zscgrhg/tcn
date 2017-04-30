@@ -3,6 +3,7 @@ package com.example.make;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.*;
 import java.util.Objects;
@@ -12,8 +13,9 @@ import static com.example.make.Utils.*;
 /**
  * Created by think on 17-4-28.
  */
-public class Make {
+public class Main {
 
+    static final String ARCH=System.getProperty("os.arch");
 
     final String TOMCAT_MATCHER = "apache-tomcat-\\d.*";
     final String APR_MATCHER = "apr-\\d.*";
@@ -25,16 +27,28 @@ public class Make {
 
 
     final File sourceDir;
-
-    public Make(File sourceDir) {
+    final File outputDir;
+    public Main(File sourceDir, File outputDir) {
         this.sourceDir = sourceDir;
+        this.outputDir = outputDir;
     }
 
+
+    public void deleteDir(File target) throws IOException {
+        if(target.isDirectory()){
+            File[] files = target.listFiles();
+            for (File file : files) {
+                deleteDir(file);
+            }
+        }
+        target.delete();
+    }
     public void prepare() throws Exception {
 
         if (!sourceDir.exists() || !sourceDir.isDirectory()) {
             throw new Exception("dir not exist : ./source");
         }
+        deleteDir(outputDir);
         File apr = Utils.getFile(sourceDir, APR_MATCHER);
         File apr_util = Utils.getFile(sourceDir, APR_UTIL_MATCHER);
         File tomcat = Utils.getFile(sourceDir, TOMCAT_MATCHER);
@@ -42,13 +56,13 @@ public class Make {
         Objects.requireNonNull(apr);
         Objects.requireNonNull(apr_util);
         Objects.requireNonNull(tomcat);
-        untar(sourceDir, apr);
-        untar(sourceDir, apr_util);
-        untar(sourceDir, tomcat);
-        File tomcat_home = getDir(sourceDir, TOMCAT_MATCHER);
+        untar(outputDir, apr);
+        untar(outputDir, apr_util);
+        untar(outputDir, tomcat);
+        File tomcat_home = getDir(outputDir, TOMCAT_MATCHER);
         File bin = getDir(tomcat_home, "bin");
         File tcnative = getFile(bin, TCNATIVE_MATCHER);
-        untar(bin, tcnative, sourceDir);
+        untar(bin, tcnative, outputDir);
 
     }
 
@@ -82,46 +96,50 @@ public class Make {
 
     public void setenv(File tomcat_home) throws Exception {
         Path setenv = tomcat_home.toPath().resolve("bin/setenv.sh");
-        InputStream env = Make.class.getClassLoader().getResourceAsStream("setenv.sh");
+        InputStream env = Main.class.getClassLoader().getResourceAsStream("setenv.sh");
         Files.copy(env, setenv, StandardCopyOption.REPLACE_EXISTING);
 
         Path setserver = tomcat_home.toPath().resolve("conf/server.xml");
-        InputStream server = Make.class.getClassLoader().getResourceAsStream("server.xml");
+        InputStream server = Main.class.getClassLoader().getResourceAsStream("server.xml");
         Files.copy(server, setserver, StandardCopyOption.REPLACE_EXISTING);
     }
 
     public void setRedisson(File tomcat_home) throws Exception {
 
-        copyToTomcat(tomcat_home,"lib","redisson-all-2.8.1.jar");
-        copyToTomcat(tomcat_home,"lib","redisson-tomcat-7-2.8.1.jar");
-        copyToTomcat(tomcat_home,"conf","context.xml");
-        copyToTomcat(tomcat_home,".","redisson.conf");
+        copy(tomcat_home,"lib","redisson-all-2.8.1.jar");
+        copy(tomcat_home,"lib","redisson-tomcat-7-2.8.1.jar");
+        copy(tomcat_home,"conf","context.xml");
+        copy(tomcat_home,".","redisson.conf");
     }
 
-    public void copyToTomcat(File tomcat_home, String subDir, String jarName) throws Exception {
-        Path redissonJar = tomcat_home.toPath().resolve(subDir).resolve(jarName);
-        InputStream redisson = new FileInputStream(sourceDir.toPath().resolve(jarName).toFile());
+    public void copy(File tomcat_home, String subDir, String src) throws Exception {
+        Path redissonJar = tomcat_home.toPath().resolve(subDir).resolve(src);
+        InputStream redisson = new FileInputStream(sourceDir.toPath().resolve(src).toFile());
         Files.copy(redisson, redissonJar, StandardCopyOption.REPLACE_EXISTING);
     }
 
+
+
     public void pkg() throws Exception {
         prepare();
-        File apr_base = Utils.getDir(sourceDir, APR_MATCHER);
-        File tomcat_home = getDir(sourceDir, TOMCAT_MATCHER);
-
+        File apr_base = Utils.getDir(outputDir, APR_MATCHER);
         installApr(apr_base);
-
-        File apr_util_base = Utils.getDir(sourceDir, APR_UTIL_MATCHER);
+        File apr_util_base = Utils.getDir(outputDir, APR_UTIL_MATCHER);
         installAprUtil(apr_util_base);
 
-        File tcnative_src_base = Utils.getDir(sourceDir, TCNATIVE_MATCHER);
-        File tcnative_base = Utils.getDir(tcnative_src_base, "native");
+        File tomcat_home = getDir(outputDir, TOMCAT_MATCHER);
         File tcnative = tomcat_home.toPath().resolve("tcnative").toFile();
         tcnative.mkdir();
+        File tcnative_src_base = Utils.getDir(outputDir, TCNATIVE_MATCHER);
+        File tcnative_base = Utils.getDir(tcnative_src_base, "native");
         installTCNative(tcnative_base, tcnative);
+
         setenv(tomcat_home);
+        tar(outputDir, "apr-"+tomcat_home.getName()+"-"+lscpu().get("Architecture") + ".tar.gz", tomcat_home);
+
         setRedisson(tomcat_home);
-        tar(sourceDir, "apr-"+tomcat_home.getName() + ".tar.gz", tomcat_home);
+
+        tar(outputDir, "redisson-"+tomcat_home.getName()+"-"+lscpu().get("Architecture") + ".tar.gz", tomcat_home);
     }
 
     public static void main(String[] args) throws Exception {
@@ -132,10 +150,9 @@ public class Make {
         String path = args[0];
         File src = baseDir.toPath().resolve(path).toFile();
         if(src.exists()&&src.isDirectory()){
-            new Make(src).pkg();
+            new Main(src, src.toPath().resolve("target").toFile()).pkg();
         }else {
-            new Make(baseDir).pkg();
+            new Main(baseDir, baseDir.toPath().resolve("target").toFile()).pkg();
         }
-
     }
 }
