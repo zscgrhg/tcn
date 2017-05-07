@@ -1,1 +1,15 @@
-export JAVA_OPTS="$JAVA_OPTS -server -Xms1024m -Xmx1024m -Djava.library.path=$CATALINA_HOME/tcnative/lib"
+export JAVA_OPTS="$JAVA_OPTS \
+-server \
+-verbose:gc \
+-Xloggc:gc.log \
+-XX:+PrintGCDateStamps \
+-XX:+UseCompressedOops \
+-XX:+UseCompressedClassPointers \
+-XX:ThreadStackSize=512 \
+-Xms2g \
+-Xmx2g \
+-XX:+UseAdaptiveSizePolicy \
+-XX:+UseParallelOldGC \
+-XX:PermSize=128m \
+-XX:MaxPermSize=128m \
+-Djava.library.path=$CATALINA_HOME/tcnative/lib"
